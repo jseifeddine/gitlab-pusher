@@ -1,0 +1,78 @@
+---
+username: <%= ENV['SSH_USERNAME'] %>
+password: <%= ENV['SSH_PASSWORD'] %>
+model: fortios
+resolve_dns: true
+interval: 3600
+use_syslog: true
+debug: false
+run_once: false
+threads: 30
+use_max_threads: false
+timeout: 20
+retries: 3
+prompt: !ruby/regexp /^([\w.@-]+[#>]\s?)$/
+rest: 0.0.0.0:8888
+next_adds_job: false
+vars: {}
+groups: {}
+group_map: {}
+models:
+  fortios:
+    vars:
+      remove_secret: true
+pid: "/home/oxidized/.config/oxidized/pid"
+crash:
+  directory: "/home/oxidized/.config/oxidized/crashes"
+  hostnames: true
+stats:
+  history_size: 10
+input:
+  default: ssh, telnet
+  debug: false
+  ssh:
+    secure: false
+  ftp:
+    passive: true
+  utf8_encoded: true
+output:
+  default: git
+  git:
+    single_repo: false
+    user: Oxidized
+    email: "<%= ENV['GITLAB_EMAIL'] %>"
+    repo: "/home/oxidized/repos/default.git"
+source:
+  default: http
+  http:
+    url: <%= ENV['NETBOX_URL'] %>/api/dcim/devices/?tag=oxidized&limit=10000
+    scheme: https
+    hosts_location: results
+    delimiter: !ruby/regexp /:/
+    read_timeout: 120
+    user: false
+    secure: true
+    map:
+      name: name
+      model: platform.slug
+      group: platform.slug
+      ip: name
+    headers:
+      Authorization: Token <%= ENV['NETBOX_API_TOKEN'] %>
+hooks:
+  push2gitlab:
+    type: exec
+    events: [post_store]
+    cmd: |
+        curl --silent -X POST http://<%= ENV['GITLAB_PUSHER_ADDRESS'] %>/push -H "Content-Type: application/json" -d '{
+        "gitlab_address": "<%= ENV['GITLAB_ADDRESS'] %>",
+        "gitlab_group": "<%= ENV['GITLAB_GROUP'] %>",
+        "gitlab_user_name": "<%= ENV['GITLAB_USER_NAME'] %>",
+        "gitlab_email": "<%= ENV['GITLAB_EMAIL'] %>",
+        "gitlab_token": "<%= ENV['GITLAB_TOKEN'] %>",
+        "base_repo_dir": "<%= ENV['BASE_REPO_DIR'] %>",
+        "repo_name": "'$OX_NODE_GROUP'"
+        }'
+model_map:
+  juniper: junos
+  cisco: ios

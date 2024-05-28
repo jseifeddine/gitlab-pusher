@@ -1,0 +1,47 @@
+services:
+  oxidized:
+    restart: always
+    image: # see https://github.com/ytti/oxidized/compare/master...jseifeddine:oxidized:master
+    environment:
+      CONFIG_RELOAD_INTERVAL: 600
+      NETBOX_API_TOKEN: ${NETBOX_API_TOKEN}
+      NETBOX_URL: ${NETBOX_URL}
+      SSH_USERNAME: ${SSH_USERNAME}
+      SSH_PASSWORD: ${SSH_PASSWORD}
+      GITLAB_EMAIL: ${GITLAB_EMAIL}
+      GITLAB_ADDRESS: ${GITLAB_ADDRESS}
+      GITLAB_GROUP: ${GITLAB_GROUP}
+      GITLAB_USER_NAME: ${GITLAB_USER_NAME}
+      GITLAB_TOKEN: ${GITLAB_TOKEN}
+      BASE_REPO_DIR: ${BASE_REPO_DIR}
+      GITLAB_PUSHER_ADDRESS: ${GITLAB_PUSHER_ADDRESS}
+    volumes:
+      - ./crash:/home/oxidized/.config/oxidized/crash
+      - ./config:/home/oxidized/.config/oxidized/config
+      - ./oxidized-repos:/home/oxidized/repos
+      - ./oxidized-bin:/home/oxidized/bin
+      - ./oxidized-ssh:/home/oxidized/.ssh
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+    networks:
+      oxidized_network:
+        ipv4_address: 1.1.1.10
+
+  gitlab-pusher:
+    restart: always
+    image: jseifeddine/gitlab-pusher
+    volumes:
+      - ./oxidized-repos:/home/oxidized/repos
+      - ./oxidized-ssh:/home/oxidized/.ssh
+    command: --listen 9999
+    networks:
+      oxidized_network:
+        ipv4_address: 1.1.1.11
+
+networks:
+  oxidized_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 1.1.1.0/24
